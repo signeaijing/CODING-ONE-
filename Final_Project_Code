@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+  <html>
+  <head>
+    <script src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/109/three.min.js"></script>
+ <script src = "https://mimicproject.com/libs/maximilian.v.0.1.js"></script>
+    <script src = "orbitControls.js"></script>
+    
+	<meta charset="utf-8">
+	<style>
+		body {
+			margin: 0px;
+			background-color: #000000;
+			overflow: hidden;
+		}
+	</style>
+</head>
+<body>
+  
+    <!-- Maximilian code goes here -->
+  <script id = "myAudioScript">
+    
+    //________  ALL MY SOUND ________ // 
+    
+    var myOsc1 = new Maximilian.maxiOsc();
+    var myOsc2 = new Maximilian.maxiOsc();
+    var myOsc3 = new Maximilian.maxiOsc();
+    var myOsc4 = new Maximilian.maxiOsc();
+    var violin1 = new Maximilian.maxiSample(); 
+    var violin2 = new Maximilian.maxiSample();
+    var cello_chords = new Maximilian.maxiSample();
+    var whoosh = new Maximilian.maxiSample();  
+    violin1.setSample(this.getSampleBuffer('violin1'));
+    violin2.setSample(this.getSampleBuffer('violin2'));
+    cello_chords.setSample(this.getSampleBuffer('cello_chords'));
+    whoosh.setSample(this.getSampleBuffer('whoosh'));
+   
+    // _______ PLAY MY SOUND _______ //
+  function play(){
+    return violin1.playOnZXAtSpeed(myOsc1.sinewave(1/(violin1.getLength()/44100)),1) + cello_chords.playOnZXAtSpeed(myOsc2.sinewave(2/(cello_chords.getLength()/25100)),1) + violin2.playOnZXAtSpeed(myOsc3.sinewave(0.5/(violin2.getLength()/44100)),0.5) +  whoosh.playOnZXAtSpeed(myOsc4.sinewave(1/(whoosh.getLength()/60100)),0.5); 
+    //osc1.saw(100*0.5) + osc2.saw(100.2) *0.5;
+   }
+  </script>
+ 
+<script language="javascript" type="text/javascript">
+  
+  // __________ INSTANTIALIZE AUDIO __________ //
+    let maxi;
+    initAudioEngine().then(async(dspEngine)=>{ 
+      maxi = dspEngine;
+      //setup();
+      //Get audio code from script element
+     // await maxi.addSample('drum','drum.wav');
+      //await maxi.addSample('ping','ping.wav');
+      await maxi.addSample('violin1','violin1.wav');
+      await maxi.addSample('violin2','violin2.wav');
+      await maxi.addSample('cello_chords','cello-chords.wav');
+      await maxi.addSample('whoosh','whoosh.wav');
+      maxi.setAudioCode("myAudioScript");
+      
+      //const playButton = document.getElementById('playButton');
+     // playButton.addEventListener("click", () => maxi.play());
+    })
+    
+   // ________ INTANTIALIZE 3D OBJECTS _________ // 
+      var camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 45,30000);   
+  //camera.position.y = 1000;
+  camera.position.set(-250,-50,-250);
+      var scene = new THREE.Scene();
+      var myTextureLoader = new THREE.TextureLoader();
+      var renderer = new THREE.WebGLRenderer();
+      var controls = new THREE.OrbitControls (camera, renderer.domElement);
+  
+  // DON'T MOVE OUTSIDE OF SKYBOX 
+   controls.minDistance = 200;
+  controls.maxDistance = 1450;
+  
+  // _____ SKYBOX TEXTURES ______ //
+ /* const materialArray = [];
+  const texture_ft = myTextureLoader.load('tears_ft.jpg');
+   const texture_bk = myTextureLoader.load('tears_bk.jpg');
+   const texture_up = myTextureLoader.load('tears_up.jpg');
+   const texture_dn = myTextureLoader.load('darkhole.jpg');
+   const texture_rt = myTextureLoader.load('tears_rt.jpg');
+   const texture_lf = myTextureLoader.load('tears_lf.jpg');
+  materialArray.push(new THREE.MeshBasicMaterial({map:texture_ft}));
+    materialArray.push(new THREE.MeshBasicMaterial({map:texture_bk}));
+    materialArray.push(new THREE.MeshBasicMaterial({map:texture_up}));
+    materialArray.push(new THREE.MeshBasicMaterial({map:texture_dn}));
+    materialArray.push(new THREE.MeshBasicMaterial({map:texture_rt}));
+    materialArray.push(new THREE.MeshBasicMaterial({map:texture_lf}));
+  
+  for (let i =0; i < 6; i++)  // show everything from the inside
+    materialArray[i].side = THREE.DoubleSide;*/
+  
+  // _____ SETUP ____ //
+  renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement); 
+      window.addEventListener('resize', onWindowResize, false); 
+   camera.position.set(500,500,500); 
+     renderer.shadowMap.enabled = true;
+   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  
+  
+  //______ AXES HELPER______// 
+  const axesHelper = new THREE.AxesHelper(100);
+  //scene.add(axesHelper) 
+  
+   //________ ALL MY TEXTURES ________ // 
+  const skyboxTexture = myTextureLoader.load('wood.jpg');
+  const planeTexture = myTextureLoader.load('creeps3.jpg');
+  const bubbleTexture = myTextureLoader.load('ghost3.png');
+  const ghostTexture = myTextureLoader.load('ghost2.png');
+        
+    //________ ALL MY VARIABLES_______//
+  const randomRadius = Math.random(10,100);
+  const width = 10;
+  const height = 30;
+  const depth = 20;
+  var ghostMesh_y = Math.floor(Math.random()*100);
+  var ghostMesh_x = Math.floor(Math.random()*100);
+  //const clock = new THREE.Clock();
+
+  // _____ CREATE SKYBOX _____//
+  function createWorld(){
+    var world = new THREE.Group();
+    
+    //SKYBOX 
+    var skyboxGeometry = new THREE.SphereGeometry(1500,1500);
+    var skyboxMaterial = new THREE.MeshBasicMaterial({map:skyboxTexture,side:THREE.DoubleSide});
+    var skyboxMesh = new THREE.Mesh(skyboxGeometry,skyboxMaterial);
+    world.add(skyboxMesh);
+    skyboxMesh.position.y=(-20-10);
+    // no edges
+    skyboxTexture.wrapS = THREE.ClampToEdgetWrapping;
+    skyboxTexture.repeat.x = 3;
+    skyboxTexture.repeat.y = 1;
+    
+    // PLANE
+    var planeGeometry = new THREE.PlaneGeometry(2500,2500);
+    planeGeometry.rotateX(-Math.PI * 0.5);
+    var planeMaterial = new THREE.MeshPhongMaterial({map:planeTexture});
+    var planeMesh = new THREE.Mesh(planeGeometry,planeMaterial);
+    world.add(planeMesh);
+    planeMesh.position.y=(-500);     
+    planeTexture.wrapS = THREE.RepeatWrapping;
+    planeTexture.repeat.x = -1;
+  	  return world;                                     
+  }
+  
+  //_______ CREATE GHOHSTS ______// 
+  function createGhosts(){
+    var ghosts = new THREE.Group();
+    var ghosts2 = new THREE.Group();
+    var ghostGeometry = new THREE.CylinderGeometry(1.5,10,15,10,10,false,10,500);
+    var ghostMaterial = new THREE.MeshToonMaterial({map: ghostTexture, side: THREE.DoubleSide});  // toon er NICE fordi det shiner på den måde, så spøgelserne ikke kan ligge i shadow 
+    var ghostMesh = new THREE.Mesh(ghostGeometry,ghostMaterial);
+    ghostMesh.position.set(100,-300,50);
+   ghostTexture.wrapS = THREE.RepeatWrapping;   
+    //ghostTexture.repeat.x = -1;
+    
+    // CLONES
+    var ghost2 = ghostMesh.clone();
+    ghost2.position.set(300,10,-100);
+    var ghost3 = ghostMesh.clone();
+    ghost3.position.set(-505,200,-200);
+    var ghost4 = ghostMesh.clone();
+    ghost4.position.set(-200,500,350);
+    var ghost5 = ghostMesh.clone();
+    ghost5.position.set(200,100,100);
+    var ghost6 = ghostMesh.clone();
+    ghost6.position.set(600,-60,-80);
+    var ghost7 = ghostMesh.clone();
+    ghost7.position.set(-60,-100,200);
+    
+    // add to group
+    ghosts.add(ghost5,ghost6,ghost7,ghost3,ghostMesh,ghost2,ghost4);
+    scene.add(ghosts);
+    return ghosts;
+  }
+  
+  //_____ CREATE MAIN GHOST _____ // 
+  function createBubbles(){     
+    
+    var bubbles = new THREE.Group();
+    var bubbleGeometry = new THREE.TorusKnotGeometry(100,8,100,100);
+    var bubbleMaterial = new THREE.MeshPhongMaterial({map:bubbleTexture, side: THREE.DoubleSide});  
+    var bubbleMesh = new THREE.Mesh(bubbleGeometry,bubbleMaterial);
+  
+    //positions 
+   bubbleMesh.position.y = (30);
+    bubbles.add(bubbleMesh);
+    scene.add(bubbles);
+    //scene.add(bubbles);
+   		return bubbles;
+  }
+  
+  // _________ ALL MY LIGHT ________ //
+  function createDirectionalLight(){
+    var DirectionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    DirectionalLight.position.set(0,900,0);
+  DirectionalLight.target.position.set(0,-900,0);
+    scene.add(DirectionalLight);
+    scene.add(DirectionalLight.target);
+    return DirectionalLight;
+  }
+  
+  function createHemisphereLight(){
+     var HemisphereLight = new THREE.HemisphereLight('#A4DBE8', '#A4DBE8', 1.5 );
+    scene.add(HemisphereLight);
+    return HemisphereLight;
+  }
+  
+  
+  // _____ CREATE THE SCENE _____// 
+  function createMain(scene){
+    
+    // WORLD 
+    var worldDone = createWorld();
+    worldDone.position.y = (20,10);
+    scene.add(worldDone);
+    
+    // SMALL GHOSTS -> only call stuff that should not be animated here
+    //var smallGhosts = createGhosts();
+    //scene.add(smallGhosts);
+    
+    // MAIN GHOST
+   // var bubblesDone = createBubbles()
+  // bubblesDone.position.y = (10,-50);
+   // bubblesDone.rotation.y=40;
+   // scene.add(bubblesDone);//
+    
+    // LIGHT HELPER 
+     const helper = new THREE.CameraHelper(   DirectionalLight.shadow.camera );
+//scene.add( helper );
+    
+    // FOG
+     scene.fog = new THREE.FogExp2(0x2e4430, 0.0008, near,far);
+  var near = 0.5;
+   var far = 1000;
+    renderer.setClearColor(scene.fog.color); 
+    
+    // RECIEVE SHADOW
+    worldDone.receiveShadow = true;
+  }
+  
+  
+  // MAIN WORLD FUNCTION CALL. Needs to be in variable to animate in draw()
+ //bubbles = createBubbles();
+  HemisphereLight = createHemisphereLight();
+  DirectionalLight = createDirectionalLight();
+  bubblesDone = createBubbles();
+  createMain(scene);
+  ghosts = createGhosts();
+  ghosts2 = createGhosts();
+  
+  
+   //______ ANIMATE _____/// 
+ /* function animateGhost(){
+    const date = Date.now() * 0.0002;
+    const orbitRadius = 100;
+    var animateGhost = smallGhosts.rotation.x += 31;
+  */
+  
+  // ____ DRAW THE THINGSSSS____/// 
+  function draw(){
+   
+    // ANIMATE ALL THE STUFF // 
+      var orbit = 0.002;
+    ghosts.rotation.y += orbit;
+    ghosts.rotation.x += orbit;
+    ghosts2.rotation.x += -orbit;
+    //bubbles.rotation.x = (5);
+     bubblesDone.position.y = (10,-50);
+    
+       // RECIEVE SHADOW
+    DirectionalLight.castShadow = true;
+    bubblesDone.recieveShadow = true;
+   
+    
+   // RENDERER
+     controls.update();
+        renderer.render(scene, camera);
+        requestAnimationFrame(draw);
+  }
+  
+  //_________ RESIZE WINDOW________// 
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+	}    
+	
+      requestAnimationFrame(draw);
+  
+</script>
+</body>
+</html>
